@@ -1,14 +1,20 @@
 # UAV-BOS Mesh-Repeater
 
-LoRa-Repeater für die UAV-BOS-Tracker. Er sendet keine eigene Position und hat kein GPS.
+LoRa-Repeater für die [UAV-BOS-Tracker](https://github.com/denni95112/uav-bos-hardware-tracker).
+Er sendet keine eigene Position und hat kein GPS.
 Er leitet die Funkpakete der Tracker weiter, mit demselben Meshtastic-kompatiblen Protokoll
 wie die Tracker-Firmware.
 
+- Tracker: [uav-bos-hardware-tracker](https://github.com/denni95112/uav-bos-hardware-tracker)
 - Hardware: Heltec **WiFi LoRa 32 V2**, 868 MHz (ESP32, SX1276, OLED)
 - Firmware: PlatformIO + Arduino (`src/`)
 - Gehäuse: OpenSCAD (`case/repeater_case.scad`), Druckdateien `case/base.stl` und `case/lid.stl`
 
 Die 433-MHz- und 915-MHz-Varianten des Boards passen nicht. Das Frequenzband ist fest EU 868.
+
+> **Firmware ganz einfach aufspielen:** Repeater per Micro-USB anschließen und auf
+> [ubhtwf.open-drone-tools.de](https://ubhtwf.open-drone-tools.de/?board=repeater) auf **Installieren** klicken.
+> Das funktioniert direkt im Browser (Google Chrome oder Microsoft Edge am PC), ohne Software-Installation.
 
 ## Betriebsarten
 
@@ -27,8 +33,10 @@ Aus "Repeater ohne WLAN" kommt man mit einem kurzen Tastendruck zurück zum Conf
 
 ## Einrichtung
 
-1. Repeater per USB an den PC (Datenkabel). In PlatformIO den Ordner öffnen und auf Upload klicken.
-   Falls der Upload nicht startet: **PRG** halten, kurz **RST** drücken, **PRG** loslassen, erneut uploaden.
+1. Repeater per Micro-USB an den PC (Datenkabel). Firmware im Browser aufspielen:
+   [ubhtwf.open-drone-tools.de](https://ubhtwf.open-drone-tools.de/?board=repeater), **Installieren**.
+   Falls kein Port erscheint: **PRG** halten, kurz **RST** drücken, **PRG** loslassen, erneut auf Installieren klicken.
+   Alternativ mit PlatformIO, siehe [Bauen](#bauen).
 2. Mit dem WLAN `UAV-BOS-Repeater-XXXX` verbinden und `http://192.168.4.1` öffnen.
 3. Dieselben LoRa-Werte eintragen wie bei den Trackern:
    - Modemprofil (Standard LongFast)
