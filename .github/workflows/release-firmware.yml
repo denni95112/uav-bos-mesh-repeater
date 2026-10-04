@@ -1,0 +1,112 @@
+name: Release firmware
+
+on:
+  push:
+    branches:
+      - release
+
+permissions:
+  contents: write
+
+concurrency:
+  group: firmware-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-release:
+    name: Build and publish firmware
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Cache PlatformIO
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.platformio/.cache
+          key: ${{ runner.os }}-pio-${{ hashFiles('platformio.ini') }}
+          restore-keys: |
+            ${{ runner.os }}-pio-
+
+      - name: Install PlatformIO
+        run: python -m pip install --upgrade platformio
+
+      - name: Mask mesh key
+        run: echo "::add-mask::${{ secrets.DMESH_PSK_B64 }}"
+
+      # DMESH_PSK_B64 is optional and only seeds devices that have no key stored yet. Release assets are
+      # public and the key can be read from them, so leave the secret unset once all devices store a key.
+      - name: Build firmware
+        env:
+          MESH_PSK_B64: ${{ secrets.DMESH_PSK_B64 }}
+        run: pio run -e heltec_v2
+
+      - name: Read firmware version
+        id: version
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import re
+          text = open("platformio.ini", encoding="utf-8").read()
+          match = re.search(r'FW_VERSION=\\"([^"\\]+)\\"', text)
+          if not match:
+              raise SystemExit("FW_VERSION missing in platformio.ini")
+          version = match.group(1)
+          print(f"version={version}")
+          print(f"tag=v{version}")
+          PY
+
+      - name: Package firmware
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          mkdir -p dist
+          BUILD=.pio/build/heltec_v2
+          cp "${BUILD}/firmware.bin" "dist/uav-bos-repeater-${VERSION}.bin"
+          cp "${BUILD}/firmware.elf" "dist/uav-bos-repeater-${VERSION}.elf"
+          # Full flash image for the web flash tool. Classic ESP32 bootloader sits at 0x1000.
+          python -m pip install esptool
+          python -m esptool --chip esp32 merge_bin \
+            -o "dist/uav-bos-repeater-${VERSION}-factory.bin" \
+            --flash_mode keep --flash_freq keep --flash_size 8MB \
+            0x1000 "${BUILD}/bootloader.bin" \
+            0x8000 "${BUILD}/partitions.bin" \
+            0xe000 "${HOME}/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin" \
+            0x10000 "${BUILD}/firmware.bin"
+          echo "${VERSION}" > dist/version.txt
+          (cd dist && sha256sum "uav-bos-repeater-${VERSION}.bin" "uav-bos-repeater-${VERSION}.elf" "uav-bos-repeater-${VERSION}-factory.bin" > SHA256SUMS)
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.version.outputs.tag }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          if git rev-parse -q --verify "refs/tags/${TAG}^{commit}" >/dev/null; then
+            existing=$(git rev-parse "refs/tags/${TAG}^{commit}")
+            if [ "$existing" != "$GITHUB_SHA" ]; then
+              echo "Tag ${TAG} already points at ${existing}."
+              echo "Raise FW_VERSION in platformio.ini before releasing again."
+              exit 1
+            fi
+          fi
+
+          notes="Automatischer Build von Branch release (Firmware ${VERSION})."
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/* --clobber
+          else
+            gh release create "$TAG" dist/* \
+              --target "$GITHUB_SHA" \
+              --title "Firmware ${TAG}" \
+              --notes "$notes"
+          fi
