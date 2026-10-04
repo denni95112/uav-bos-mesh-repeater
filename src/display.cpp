@@ -3,6 +3,7 @@
 #include <Adafruit_SSD1306.h>
 #include <Wire.h>
 
+#include "battery.h"
 #include "pins.h"
 
 namespace display {
@@ -91,8 +92,14 @@ void showStatus(const MeshStats &mesh, int apClients) {
     line(48, buf);
   }
 
-  if (apClients < 0) line(56, "WLAN aus");
-  else {
+  if (apClients < 0) {
+    int pct = battery::percent();
+    if (pct < 0) line(56, "kein Akku");
+    else {
+      snprintf(buf, sizeof(buf), "Akku %d%%", pct);
+      line(56, buf);
+    }
+  } else {
     snprintf(buf, sizeof(buf), "AP  %u Geraete", apClients);
     line(56, buf);
   }

@@ -18,6 +18,11 @@
 
 #define PIN_LED 25
 
+// Battery divider is 220k/100k (scale 3.2) and is connected while Vext is on.
+// V2.0 senses on GPIO 13 (ADC2, only valid with WiFi off). V2.1 moved it to GPIO 37.
+#define PIN_BATTERY_V2 13
+#define PIN_BATTERY_V21 37
+
 // SX1276 LoRa. DIO0 is RxDone / TxDone / CAD. No TCXO and no DIO2 RF switch.
 #define PIN_LORA_SCK 5
 #define PIN_LORA_MISO 19
