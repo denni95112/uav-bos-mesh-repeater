@@ -69,7 +69,7 @@ Gleiche Vorgaben wie die Tracker-Firmware:
 Umgebungsvariable. Ein Gerät ohne gespeicherten Schlüssel übernimmt ihn einmalig. Der Wert steht
 lesbar in der Binärdatei. Solche Builds nicht veröffentlichen.
 
-## Gehäuse (`case/repeater_case.scad`)
+## WIP: Work in Progress | Gehäuse (`case/repeater_case.scad`)
 
 Für die Heltec WiFi LoRa 32 V2 und einen LiPo 35 × 20,1 × 6,5 mm. Der Akku liegt unter dem
 Display-Ende, die Platine auf seitlichen Auflagen. Ohne Stiftleisten: eine gelötete Leiste ist
